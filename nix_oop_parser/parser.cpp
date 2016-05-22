@@ -1,152 +1,140 @@
 #include <iostream>
 #include <cmath>
-#include <string>
-#include <vector>
-#include <stack>
 using namespace std;
 
 class Token {
 public:
-	char kind;
+	char symb;
 	double value;
-	Token(char ch) : kind(ch), value(0) {}
-	Token(char ch, double val) : kind(ch), value(val) {}
+	Token(char c) : symb(c), value(0) {}
+	Token(char c, double val) : symb(c), value(val) {}
 };
 
-class Token_stream {
+class Processor {
 private:
-	bool full;
-	Token buffer;
+	bool flag;
+	Token buff;
 
 public:
-	Token_stream() : full(false), buffer(0) {}
+	Processor() : flag(false), buff(0) {}
 	Token get() {
-		if (full) {
-			full = false;
-			return buffer;
+		if (flag) {
+			flag = false;
+			return buff;
 		}
-		char ch;
-		cin >> noskipws >> ch;
-		switch (ch) {
+		char c;
+		cin >> noskipws >> c;
+		switch (c) {
 		case '\n': case ' ':
 		case '(': case ')': case '+': case '-': case '*': case '/': case '^':
-			return Token(ch);
+			return Token(c);
 		case '.': case '0': case '1': case '2': case '3': case '4': case '5':
 		case '6': case '7': case '8': case '9': {
-			cin.putback(ch);
+			cin.putback(c);
 			double val;
 			cin >> val;
 			return Token('8', val);
 		}
 		}
 	}
-	void putback(Token t) {
-		buffer = t;
-		full = true;
+	void putback(Token token) {
+		buff = token;
+		flag = true;
+	}
+	double sum() {
+		double left = mult();
+		Token token = get();
+		while (true) {
+			switch (token.symb) {
+			case ' ':
+				token = get();
+				break;
+			case '+':
+				left += mult();
+				token = get();
+				break;
+			case '-':
+				left -= mult();
+				token = get();
+				break;
+			default:
+				putback(token);
+				return left;
+			}
+		}
+	}
+	double mult() {
+		double left = power();
+		Token token = get();
+		while (true) {
+			switch (token.symb) {
+			case ' ':
+				token = get();
+				break;
+			case '*':
+				left *= power();
+				token = get();
+				break;
+			case '/':
+				left /= power();
+				token = get();
+				break;
+			default:
+				putback(token);
+				return left;
+			}
+		}
+	}
+	double power() {
+		double left = brackets();
+		Token token = get();
+		while (true) {
+			switch (token.symb) {
+			case ' ':
+				token = get();
+				break;
+			case '^':
+				left = pow(left, brackets());
+				token = get();
+				break;
+			default:
+				putback(token);
+				return left;
+			}
+		}
+	}
+	double brackets() {
+		Token token = get();
+		while (true) {
+			switch (token.symb) {
+			case ' ':
+				token = get();
+				break;
+			case '(':
+			{
+				double d = sum();
+				token = get();
+				return d;
+			}
+			case '8':
+				return token.value;
+			case '-':
+				return -brackets();
+			case '+':
+				return brackets();
+			}
+		}
+	}
+	void process() {
+		cout << sum() << '\n';
 	}
 };
 
-Token_stream ts;
-double fifth_expression();
-double fourth_expression();
-double third_expression();
-double second_expression();
-
-// + -
-double fifth_expression() {
-	double left = fourth_expression();
-	Token t = ts.get();
-	while (true) {
-		switch (t.kind) {
-		case ' ':
-			t = ts.get();
-			break;
-		case '+':
-			left += fourth_expression();
-			t = ts.get();
-			break;
-		case '-':
-			left -= fourth_expression();
-			t = ts.get();
-			break;
-		default:
-			ts.putback(t);
-			return left;
-		}
-	}
-}
-
-// * /
-double fourth_expression() {
-	double left = third_expression();
-	Token t = ts.get();
-	while (true) {
-		switch (t.kind) {
-		case ' ':
-			t = ts.get();
-			break;
-		case '*':
-			left *= third_expression();
-			t = ts.get();
-			break;
-		case '/':
-			left /= third_expression();
-			t = ts.get();
-			break;
-		default:
-			ts.putback(t);
-			return left;
-		}
-	}
-}
-
-// ^
-double third_expression() {
-	double left = second_expression();
-	Token t = ts.get();
-	while (true) {
-		switch (t.kind) {
-		case ' ':
-			t = ts.get();
-			break;
-		case '^':
-			left = pow(left, second_expression());
-			t = ts.get();
-			break;
-		default:
-			ts.putback(t);
-			return left;
-		}
-	}
-}
-
-// - ()
-double second_expression() {
-	Token t = ts.get();
-	while (true) {
-		switch (t.kind) {
-		case ' ':
-			t = ts.get();
-			break;
-		case '(':
-		{
-			double d = fifth_expression();
-			t = ts.get();
-			return d;
-		}
-		case '8':
-			return t.value;
-		case '-':
-			return -second_expression();
-		case '+':
-			return second_expression();
-		}
-	}
-}
 
 
 int main() {
-	cout << fifth_expression() << '\n';
+	Processor proc;
+	proc.process();
 	system("pause");
 	return 0;
 }
